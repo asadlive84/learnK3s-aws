@@ -1,0 +1,76 @@
+name: Pulumi AWS VPC Deployment
+
+on:
+  push:
+    branches:
+      - main  # Run the action on pushes to the main branch
+  pull_request:
+    branches:
+      - main  # Run the action on pull requests to the main branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out the repository
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Node.js (required for Pulumi)
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '14'
+
+      # Step 3: Install Pulumi CLI
+      - name: Install Pulumi
+        run: |
+          curl -fsSL https://get.pulumi.com | sh
+          export PATH=$HOME/.pulumi/bin:$PATH
+
+      # Step 4: Set up Go with the correct version
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'  # Updated Go version to 1.21
+
+      # Step 5: Configure AWS credentials
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-southeast-1  # Set your AWS region
+
+      # Step 6: Install Go dependencies
+      - name: Install Go dependencies
+        run: go mod tidy
+
+      # Step 7: Install Pulumi Go dependencies
+      - name: Install Pulumi Go dependencies
+        run: go get
+
+      # Step 8: Select Pulumi Stack
+      - name: Select Pulumi Stack
+        run: pulumi stack select asadlive84/learnK3s-aws/dev
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}  # Optional: If using Pulumi service backend
+            
+     # Step 9: Pulumi Refresh
+      - name: Pulumi Refresh
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}  # Optional: If using Pulumi service backend
+        run: pulumi refresh --yes        
+
+      # Step 9: Pulumi Preview
+      - name: Pulumi Preview
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}  # Optional: If using Pulumi service backend
+        run: pulumi preview
+
+      # Step 10: Pulumi Up (Deploy the resources)
+      - name: Pulumi Up
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}  # Optional: If using Pulumi service backend
+        run: pulumi up --yes
